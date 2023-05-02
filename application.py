@@ -25,6 +25,7 @@ args = parser.parse_args()
 
 
 def client():
+	
 	client_socket = socket(AF_INET, SOCK_DGRAM)
 	port = args.port # port
 	server_ip = args.serverip # serverIp
@@ -34,6 +35,18 @@ def client():
 
 	message = args.filetransfer # get method with variable of the html file that is going to be displayed
 	client_socket.send(message.encode())
+
+	f = open(message, "rb")
+	while True:
+		msg = f.readline()
+		#print(msg)
+		if msg == b'':
+			break
+	
+
+		client_socket.send(msg)
+	client_socket.send("fin".encode())
+
 
 def server():
 		serverSocket = socket(AF_INET, SOCK_DGRAM) 
@@ -50,12 +63,18 @@ def server():
 	
 		message = serverSocket.recv(1024).decode() #message gets recvived 
 		
-		f = open(message, "w") # the html file gets opened
+		f = open("Copy-"+message, "wb") # the html file gets opened
 	
 		#Send the content of the requested file to the client. It writes the content from the html file
+		ww = b''
 		while True:
-			msg = serverSocket.recv(1024).decode()
-			f.write(msg)
+			msg = serverSocket.recv(1024)
+			if msg == b'fin':
+				break
+			#print(msg)
+			f.write(ww)
+
+		
 
 
 if args.server and not args.client:
