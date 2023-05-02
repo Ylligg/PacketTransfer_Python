@@ -32,26 +32,8 @@ def client():
 	client_socket.connect((server_ip, port))
 	print("Client connected with ", server_ip, ", port", port)
 
-
 	message = args.filetransfer # get method with variable of the html file that is going to be displayed
 	client_socket.send(message.encode())
-
-	print("  0                   1                   2                   3\n"
-            "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
-            "|                            32 bits                            |\n"
-            "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
-            "|                              32                     	        |\n"
-            "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
-            "|            16               	|             16                |\n"
-           "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
-            "|<------------------------------------------------------------->|\n"
-                            "\t\t  bits(32) / bytes(4)")
-	
-	print("\n\n+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
-            "|                                                       |S|A|F|R|\n"
-            "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
-
-                "S = SYN flag, A= ACK flag, F=FIN flag and R=Reset flag ")
 
 def server():
 		serverSocket = socket(AF_INET, SOCK_DGRAM) 
@@ -68,14 +50,12 @@ def server():
 	
 		message = serverSocket.recv(1024).decode() #message gets recvived 
 		
-		f = open(message) # the html file gets opened
-		outputdata  = f.read() # Html file gets written
-
+		f = open(message, "w") # the html file gets opened
+	
 		#Send the content of the requested file to the client. It writes the content from the html file
-		for i in range(0, len(outputdata)):
-			serverSocket.send(outputdata[i].encode()) 
-		serverSocket.close()
-
+		while True:
+			msg = serverSocket.recv(1024).decode()
+			f.write(msg)
 
 
 if args.server and not args.client:
