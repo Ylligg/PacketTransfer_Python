@@ -24,8 +24,10 @@ parser.add_argument('-R', '--Reset', type=str)
 args = parser.parse_args()
 
 
+
+
 def client():
-	
+
 	client_socket = socket(AF_INET, SOCK_DGRAM)
 	port = args.port # port
 	server_ip = args.serverip # serverIp
@@ -38,7 +40,7 @@ def client():
 
 	f = open(message, "rb")
 	while True:
-		msg = f.readline()
+		msg = f.read(1024)
 		#print(msg)
 		if msg == b'':
 			break
@@ -66,14 +68,13 @@ def server():
 		f = open("Copy-"+message, "wb") # the html file gets opened
 	
 		#Send the content of the requested file to the client. It writes the content from the html file
-		ww = b''
 		while True:
 			msg = serverSocket.recv(1024)
 			if msg == b'fin':
 				break
-			#print(msg)
-			f.write(ww)
-
+			print(msg)
+			f.write(msg)
+		serverSocket.close()
 		
 
 
