@@ -1,0 +1,86 @@
+from socket import *
+import sys
+import _thread as thread
+from tabulate import tabulate
+import time
+import argparse 
+import ipaddress 
+
+parser = argparse.ArgumentParser(description="positional arguments", epilog="end of help")
+
+parser.add_argument('-s', '--server', help='Activates the server side', action='store_true')
+parser.add_argument('-c', '--client', help='Activates the client side',action='store_true')
+parser.add_argument('-i', '--serverip', type=str, default='127.0.0.1')
+parser.add_argument('-p', '--port', type=int, default=8088)
+parser.add_argument('-r', '--reliable', type=str)
+parser.add_argument('-t', '--testcase', type=str)
+parser.add_argument('-f', '--filetransfer', type=str)
+
+parser.add_argument('-S', '--SYN', type=str)
+parser.add_argument('-A', '--ACK', type=int)
+parser.add_argument('-F', '--FIN', type=int)
+parser.add_argument('-R', '--Reset', type=str)
+
+args = parser.parse_args()
+
+
+def client():
+	client_socket = socket(AF_INET, SOCK_DGRAM)
+	port = args.port # port
+	server_ip = args.serverip # serverIp
+	
+	client_socket.connect((server_ip, port))
+	print("Client connected with ", server_ip, ", port", port)
+
+
+	message = args.filetransfer # get method with variable of the html file that is going to be displayed
+	client_socket.send(message.encode())
+
+	print("  0                   1                   2                   3\n"
+            "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
+            "|                            32 bits                            |\n"
+            "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
+            "|                              32                     	        |\n"
+            "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
+            "|            16               	|             16                |\n"
+           "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
+            "|<------------------------------------------------------------->|\n"
+                            "\t\t  bits(32) / bytes(4)")
+	
+	print("\n\n+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
+            "|                                                       |S|A|F|R|\n"
+            "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
+
+                "S = SYN flag, A= ACK flag, F=FIN flag and R=Reset flag ")
+
+def server():
+		serverSocket = socket(AF_INET, SOCK_DGRAM) 
+		serverPort = args.port
+		server_ip = args.serverip
+
+		try:
+			serverSocket.bind((server_ip,serverPort))
+		except:
+			print("Binding did not work")
+			sys.exit()
+	
+		print('A Simpleperf server is listening on port', serverPort, "\n")
+	
+		message = serverSocket.recv(1024).decode() #message gets recvived 
+		
+		f = open(message) # the html file gets opened
+		outputdata  = f.read() # Html file gets written
+
+		#Send the content of the requested file to the client. It writes the content from the html file
+		for i in range(0, len(outputdata)):
+			serverSocket.send(outputdata[i].encode()) 
+		serverSocket.close()
+
+
+
+if args.server and not args.client:
+	server()
+elif args.client and not args.server:
+	client()
+else:
+	raise argparse.ArgumentTypeError('you must run either in server or client mode')
