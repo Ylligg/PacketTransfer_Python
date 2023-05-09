@@ -216,13 +216,13 @@ def server():
 		message = serverSocket.recv(1024)[12:].decode() #message gets recvived 
 		
 		if message != "":
-			serverSocket.send("ACK".encode())
+			serverSocket.sendto("ACK".encode(),	("127.0.0.1",8088))
 
 		f = open("Copy-"+message, "wb") # the html file gets opened
 	
 		#Send the content of the requested file to the client. It writes the content from the html file
 		while True:
-			msg = serverSocket.recv(1024)
+			msg = serverSocket.recvfrom(1024)
 			if msg == b'fin':
 				break
 			print(msg)
