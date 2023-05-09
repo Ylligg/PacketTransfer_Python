@@ -176,7 +176,7 @@ def client():
 	client_socket.connect((server_ip, port))
 	print("Client connected with ", server_ip, ", port", port)
 
-	if args.reliable == "s&w":
+	if args.reliable == "sw":
 		stop_and_wait_sender(client_socket)
 
 	else:
