@@ -181,7 +181,7 @@ def client():
 
 	else:
 		message = args.filetransfer # get method with variable of the html file that is going to be displayed
-		client_socket.send(message)
+		client_socket.send(message.encode())
 
 		f = open(message, "rb")
 		while True:
