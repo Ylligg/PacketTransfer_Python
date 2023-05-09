@@ -143,7 +143,7 @@ def stop_and_wait_reciever():
 def stop_and_wait_sender(connection):
 		sequence_number = 1
 		acknowledgment_number = 0
-		packet = create_packet(sequence_number, acknowledgment_number, 2, 0, args.filetransfer)
+		packet = create_packet(sequence_number, acknowledgment_number, 2, 0, args.filetransfer.encode())
 		sequence_number += 1
 
 
