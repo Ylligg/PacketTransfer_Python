@@ -53,7 +53,7 @@ def create_packet(seq, ack, flags, win, data):
     #once we create a header, we add the application data to create a packet
     #of 1472 bytes
     packet = header + data
-    print (f'packet containing header + data of size {len(packet)}') #just to show the length of the packet
+
     return packet
 
 
@@ -75,7 +75,7 @@ def parse_flags(flags):
     return syn, ack, fin
 
 #now let's create a packet with sequence number 1
-print ('\n\ncreating a packet')
+
 
 data = b'0' * 1460
 print (f'app data for size ={len(data)}')
@@ -137,13 +137,31 @@ print (f'syn_flag = {syn}, fin_flag={fin}, and ack_flag={ack}')
 
 
 
-def stop_and_wait():
-	socket.settimeout(500)
+def stop_and_wait_reciever():
+	return 0
+		
+def stop_and_wait_sender(connection):
+		packet = create_packet(seq,ack,2,0,args.filetransfer)
+		seq += 1
+
+
+		connection.send(packet.encode)
+
+		message = connection.recv(1024)
+		
+		if(message != "ACK"):
+			socket.settimeout(500)
+		
+		ack += 1
+
+		
 
 def GBNorSR():
 	if(args.reliable == "gbn"):
+
 		print("gbn is used")
 	elif(args.reliable == "sr"):
+
 		print("sr is used")
 	elif(args.reliable == "s&w"):
 		print("s&w is used")
@@ -158,18 +176,22 @@ def client():
 	client_socket.connect((server_ip, port))
 	print("Client connected with ", server_ip, ", port", port)
 
-	message = args.filetransfer # get method with variable of the html file that is going to be displayed
-	client_socket.send(message.encode())
+	if args.reliable == "s&w":
+		stop_and_wait_sender(client_socket)
 
-	f = open(message, "rb")
-	while True:
-		msg = f.read(1024)
-		#print(msg)
-		if msg == b'':
-			break
-	
+	else:
+		message = args.filetransfer # get method with variable of the html file that is going to be displayed
+		client_socket.send(message.encode())
 
-		client_socket.send(msg)
+		f = open(message, "rb")
+		while True:
+			msg = f.read(1024)
+			#print(msg)
+			if msg == b'':
+				break
+		
+
+			client_socket.send(msg)
 	client_socket.send("fin".encode())
 
 
@@ -207,6 +229,7 @@ elif args.client and not args.server:
 	client()
 else:
 	raise argparse.ArgumentTypeError('you must run either in server or client mode')
+
 
 if args.reliable == "gbn":
 	GBNorSR()
