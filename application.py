@@ -210,7 +210,7 @@ def server():
 	
 		print('A Simpleperf server is listening on port', serverPort, "\n")
 	
-		message = serverSocket.recv(1024).decode() #message gets recvived 
+		message = serverSocket.recv(1024)[12:].decode() #message gets recvived 
 		
 		f = open("Copy-"+message, "wb") # the html file gets opened
 	
