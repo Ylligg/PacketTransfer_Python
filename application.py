@@ -141,8 +141,8 @@ def stop_and_wait_reciever():
 	return 0
 		
 def stop_and_wait_sender(connection):
-		packet = create_packet(seq,ack,2,0,args.filetransfer)
-		seq += 1
+		packet = create_packet(sequence_number,acknowledgment_number,2,0,args.filetransfer)
+		sequence_number += 1
 
 
 		connection.send(packet)
@@ -152,7 +152,7 @@ def stop_and_wait_sender(connection):
 		if(message != "ACK"):
 			socket.settimeout(500)
 		
-		ack += 1
+		acknowledgment_number += 1
 
 		
 
