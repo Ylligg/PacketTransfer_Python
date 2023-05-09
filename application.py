@@ -145,7 +145,7 @@ def stop_and_wait_sender(connection):
 		seq += 1
 
 
-		connection.send(packet.encode)
+		connection.send(packet)
 
 		message = connection.recv(1024)
 		
