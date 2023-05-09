@@ -141,10 +141,11 @@ def stop_and_wait_reciever():
 	return 0
 		
 def stop_and_wait_sender(connection):
+		
 		sequence_number = 1
 		acknowledgment_number = 0
 		packet = create_packet(sequence_number, acknowledgment_number, 2, 0, args.filetransfer.encode())
-		sequence_number += 1
+		
 
 
 		connection.send(packet)
@@ -153,7 +154,9 @@ def stop_and_wait_sender(connection):
 		
 		if(message != "ACK"):
 			socket.settimeout(500)
+			connection.send(packet)
 		
+		sequence_number += 1
 		acknowledgment_number += 1
 
 		
@@ -165,7 +168,7 @@ def GBNorSR():
 	elif(args.reliable == "sr"):
 
 		print("sr is used")
-	elif(args.reliable == "s&w"):
+	elif(args.reliable == "sw"):
 		print("s&w is used")
 
 	
