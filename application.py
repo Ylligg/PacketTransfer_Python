@@ -150,12 +150,12 @@ def stop_and_wait_sender(connection):
 
 		connection.send(packet)
 
-		message = connection.recv(1024)
+		message, serveraddress = connection.recvfrom(1024)
 		print(message)
 		
 		if(message != "ACK"):
 			connection.settimeout(500)
-			connection.send(packet)
+			connection.sendto(packet, serveraddress)
 		
 		sequence_number += 1
 		acknowledgment_number += 1
