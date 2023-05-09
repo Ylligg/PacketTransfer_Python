@@ -154,7 +154,7 @@ def stop_and_wait_sender(connection):
 		print(message)
 		
 		if(message != "ACK"):
-			socket.settimeout(500)
+			connection.settimeout(500)
 			connection.send(packet)
 		
 		sequence_number += 1
