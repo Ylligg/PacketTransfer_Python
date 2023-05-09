@@ -222,7 +222,7 @@ def server():
 	
 		#Send the content of the requested file to the client. It writes the content from the html file
 		while True:
-			msg = serverSocket.recvfrom(1024)
+			msg = serverSocket.recv(1024)
 			if msg == b'fin':
 				break
 			print(msg)
