@@ -151,6 +151,7 @@ def stop_and_wait_sender(connection):
 		connection.send(packet)
 
 		message = connection.recv(1024)
+		print(message)
 		
 		if(message != "ACK"):
 			socket.settimeout(500)
@@ -213,10 +214,11 @@ def server():
 	
 		print('A Simpleperf server is listening on port', serverPort, "\n")
 	
-		message = serverSocket.recv(1024)[12:].decode() #message gets recvived 
+		message, clientaddress = serverSocket.recvfrom(1024)
+		message = message[12:].decode()
 		
 		if message != "":
-			serverSocket.sendto("ACK".encode(),	("127.0.0.1",8088))
+			serverSocket.sendto("ACK".encode(),	clientaddress)
 
 		f = open("Copy-"+message, "wb") # the html file gets opened
 	
