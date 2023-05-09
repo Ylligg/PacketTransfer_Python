@@ -147,10 +147,6 @@ def GBNorSR():
 		print("sr is used")
 	elif(args.reliable == "s&w"):
 		print("s&w is used")
-	else:
-		raise argparse.ArgumentTypeError('you must choose a reliable method')
-
-
 
 	
 def client():
@@ -211,3 +207,12 @@ elif args.client and not args.server:
 	client()
 else:
 	raise argparse.ArgumentTypeError('you must run either in server or client mode')
+
+if args.reliable == "gbn":
+	GBNorSR()
+elif args.reliavle =="sr":
+	GBNorSR()
+elif args.reliable == "s&w":
+	stop_and_wait()
+else
+	raise argparse.ArgumentTypeError('you must choose a reliable method')
