@@ -214,5 +214,5 @@ elif args.reliavle =="sr":
 	GBNorSR()
 elif args.reliable == "s&w":
 	stop_and_wait()
-else
+else:
 	raise argparse.ArgumentTypeError('you must choose a reliable method')
