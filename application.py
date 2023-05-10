@@ -142,7 +142,7 @@ def stop_and_wait_reciever(connectionserver):
 		message, clientaddress = connectionserver.recvfrom(1024)
 		acknowledgment = "ACK"
 		if message != "":
-			connectionserver.sendto(acknowledgment, clientaddress)
+			connectionserver.sendto(acknowledgment.encode(), clientaddress)
 	
 		
 def stop_and_wait_sender(connection):
@@ -159,7 +159,6 @@ def stop_and_wait_sender(connection):
 			message, serveraddress = connection.recvfrom(1024)
 			print(message)
 			if message == "ACK":
-				print(msg)
 				break
 			if(message != "ACK"):
 				connection.settimeout(500)
