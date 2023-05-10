@@ -141,7 +141,7 @@ def stop_and_wait_reciever(connectionserver):
 
 		message, clientadress = connectionserver.recvfrom(1024)
 		acknowledgment = "ACK"
-		if message != ""
+		if message != "":
 			connectionserver.sendto(acknowledgment, clientaddress)
 	
 		
