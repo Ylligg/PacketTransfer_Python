@@ -139,7 +139,7 @@ print (f'syn_flag = {syn}, fin_flag={fin}, and ack_flag={ack}')
 
 def stop_and_wait_reciever(connectionserver):
 
-		message, clientadress = connectionserver.recvfrom(1024)
+		message, clientaddress = connectionserver.recvfrom(1024)
 		acknowledgment = "ACK"
 		if message != "":
 			connectionserver.sendto(acknowledgment, clientaddress)
