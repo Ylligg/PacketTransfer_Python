@@ -159,6 +159,7 @@ def stop_and_wait_sender(connection):
 			message, serveraddress = connection.recvfrom(1024)
 			print(message)
 			if message == "ACK":
+				print(msg)
 				break
 			if(message != "ACK"):
 				connection.settimeout(500)
