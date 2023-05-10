@@ -137,8 +137,13 @@ print (f'syn_flag = {syn}, fin_flag={fin}, and ack_flag={ack}')
 
 
 
-def stop_and_wait_reciever():
-	return 0
+def stop_and_wait_reciever(connectionserver):
+
+		message, clientadress = connectionserver.recvfrom(1024)
+		acknowledgment = "ACK"
+		if message != ""
+			connectionserver.sendto(acknowledgment, clientaddress)
+	
 		
 def stop_and_wait_sender(connection):
 		
@@ -216,6 +221,10 @@ def server():
 			sys.exit()
 	
 		print('A Simpleperf server is listening on port', serverPort, "\n")
+
+
+		if args.reliable == "sw":
+			stop_and_wait_reciever(serverSocket)
 	
 		message, clientaddress = serverSocket.recvfrom(1024)
 		message = message[12:].decode()
