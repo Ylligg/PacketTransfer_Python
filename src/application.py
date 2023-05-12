@@ -169,7 +169,7 @@ def stop_and_wait_sender(connection):
 		
 def GBN_recviver(serverconnection):
 
-
+	
 	while True:
 
 		message, clientaddress = serverconnection.recvfrom(1460)
@@ -178,8 +178,8 @@ def GBN_recviver(serverconnection):
 		print("så mye ", tall)
 		h = message[:12]
 		print(len(h))
-
-		if(len(h) < 12):
+		
+		if message == b'fin':
 			break
 
 
@@ -199,10 +199,7 @@ def GBN_sender(connection):
 
 	message = args.filetransfer
 	f = open(message, "rb")
-	teller = 0
 	while True:
-
-		print(seq, "HEIA")
 		
 		msg = f.read(1460)
 		packet = create_packet(seq, ack, flags, win, msg)
@@ -211,14 +208,13 @@ def GBN_sender(connection):
 		seq += 1
 		#print(msg)
 		if msg == b'':
+			connection.send("fin".encode())
 			break
 
 		acknowledgment, serveraddress = connection.recvfrom(1460)
 		print(acknowledgment) # ack message
 		
 		if acknowledgment == b"ACK":
-			teller +=1
-			print(teller)
 			ack += 1
 		else:
 			connection.settimeout(500)
@@ -302,25 +298,24 @@ def server():
 			stop_and_wait_reciever(serverSocket)
 		elif args.reliable == "gbn":
 			GBN_recviver(serverSocket)
-		else:
-			message, clientaddress = serverSocket.recvfrom(1460)
-			message = message[12:].decode()
+	
+		message1, clientaddress = serverSocket.recvfrom(1460)
+		message = message1[:17].decode()
 
 
-			
-			if message != "":
-				serverSocket.sendto("ACK".encode(),	clientaddress)
+		if message != "":
+			serverSocket.sendto("ACK".encode(),	clientaddress)
 
-			f = open("Copy-"+message, "wb") # the html file gets opened
-		
-			#Send the content of the requested file to the client. It writes the content from the html file
-			while True:
-				msg = serverSocket.recv(1460)
-				if msg == b'fin':
-					break
-				#print(msg)
-				f.write(msg)
-			serverSocket.close()
+		f = open("Copy-"+ message, "wb") # the html file gets opened
+	
+		#Send the content of the requested file to the client. It writes the content from the html file
+		while True:
+			msg = serverSocket.recv(1460)
+			if msg == b'fin':
+				break
+			#print(msg)
+			f.write(msg)
+		serverSocket.close()
 		
 # Description: 
  # this checks if either the client or server flag is used, when used a call is made to their respected functions
