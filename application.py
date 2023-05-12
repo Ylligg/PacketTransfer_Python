@@ -232,6 +232,16 @@ def client():
 	client_socket.send("fin".encode())
 
 
+
+# Description: 
+ # the server function creates a socket in UDP which is unreliable. 
+ # a connection is made by using the port and ip when connected with the client it is now able to transfer a file.
+ # Arguments:
+ # ip & port: they use flags to be able to connect via the socket
+ # 
+ # Returns: a copy of a img sent from the client side 
+ #
+
 def server():
 		serverSocket = socket(AF_INET, SOCK_DGRAM) 
 		serverPort = args.port
@@ -266,7 +276,12 @@ def server():
 			f.write(msg)
 		serverSocket.close()
 		
-
+# Description: 
+ # this checks if either the client or server flag is used, when used a call is made to their respected functions
+ # Arguments: 
+ # if & elif: server flag is used and not client then the server() function is called and vice versa
+ # if non of these two are used then an error is raised (you must run either in server or client mode)
+ #
 
 if args.server and not args.client:
 	server()
