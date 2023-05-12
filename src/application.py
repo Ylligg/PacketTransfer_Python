@@ -1,8 +1,5 @@
 from socket import *
 import sys
-import _thread as thread
-from tabulate import tabulate
-import time
 import argparse 
 import ipaddress 
 
@@ -168,7 +165,6 @@ def stop_and_wait_sender(connection):
 
 		
 def GBN_recviver(serverconnection):
-
 	
 	while True:
 
@@ -178,19 +174,22 @@ def GBN_recviver(serverconnection):
 		print("så mye ", tall)
 		h = message[:12]
 		print(len(h))
+
+		
 		
 		if message == b'fin':
 			break
-
-
+		
 		#now we get the header from the parse_header function
 		#which unpacks the values based on the header_format that 
 		#we specified
 		seq, ack, flags, win = parse_header (h)
 
-	
+		
 		print(f'seq={seq}, ack={ack}, flags={flags}, recevier-window={win}')
 		serverconnection.sendto("ACK".encode(), clientaddress)
+
+	
 
 
 def GBN_sender(connection):
@@ -245,26 +244,26 @@ def client():
 	print("Client connected with ", server_ip, ", port", port)
 
 
+	message = args.filetransfer # get method with variable of the html file that is going to be displayed
+	client_socket.send(message.encode())
+
 	if args.reliable == "sw":
 		stop_and_wait_sender(client_socket)
 
 	elif args.reliable == "gbn":
 		GBN_sender(client_socket)
+	else:
 
+		f = open(message, "rb")
+		while True:
+			msg = f.read(1460)
+			#print(msg)
+			if msg == b'':
+				break
+		
+			client_socket.send(msg)
 
-	message = args.filetransfer # get method with variable of the html file that is going to be displayed
-	client_socket.send(message.encode())
-	
-	f = open(message, "rb")
-	while True:
-		msg = f.read(1460)
-		#print(msg)
-		if msg == b'':
-			break
-	
-		client_socket.send(msg)
-
-	client_socket.send("fin".encode())
+		client_socket.send("fin".encode())
 
 
 
@@ -293,22 +292,21 @@ def server():
 	
 		print('A Simpleperf server is listening on port', serverPort, "\n")
 
+	
+
+		message, clientaddress = serverSocket.recvfrom(1460)
+		message = message[:17].decode() # the name of the file (apollo_creed.jpg)
 
 		if args.reliable == "sw":
 			stop_and_wait_reciever(serverSocket)
 		elif args.reliable == "gbn":
 			GBN_recviver(serverSocket)
-	
-		message1, clientaddress = serverSocket.recvfrom(1460)
-		message = message1[:17].decode()
-
-
+					
 		if message != "":
 			serverSocket.sendto("ACK".encode(),	clientaddress)
 
 		f = open("Copy-"+ message, "wb") # the html file gets opened
-	
-		#Send the content of the requested file to the client. It writes the content from the html file
+
 		while True:
 			msg = serverSocket.recv(1460)
 			if msg == b'fin':
@@ -316,6 +314,8 @@ def server():
 			#print(msg)
 			f.write(msg)
 		serverSocket.close()
+	
+	
 		
 # Description: 
  # this checks if either the client or server flag is used, when used a call is made to their respected functions
