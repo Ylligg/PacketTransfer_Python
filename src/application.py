@@ -185,8 +185,6 @@ def GBN(connection):
 				connection.send(packet)
 				break
 			
-		sequence_number += 1
-		acknowledgment_number += 1
 
 	sequence_number += 1
 	acknowledgment_number += 1
@@ -216,19 +214,18 @@ def client():
 	if args.reliable == "sw":
 		stop_and_wait_sender(client_socket)
 
-	else:
-		message = args.filetransfer # get method with variable of the html file that is going to be displayed
-		client_socket.send(message.encode())
+	message = args.filetransfer # get method with variable of the html file that is going to be displayed
+	client_socket.send(message.encode())
 
-		f = open(message, "rb")
-		while True:
-			msg = f.read(1024)
-			#print(msg)
-			if msg == b'':
-				break
-		
+	f = open(message, "rb")
+	while True:
+		msg = f.read(1024)
+		print(msg)
+		if msg == b'':
+			break
+	
 
-			client_socket.send(msg)
+		client_socket.send(msg)
 	client_socket.send("fin".encode())
 
 
@@ -238,8 +235,11 @@ def client():
  # a connection is made by using the port and ip when connected with the client it is now able to transfer a file.
  # Arguments:
  # ip & port: they use flags to be able to connect via the socket
- # 
- # Returns: a copy of a img sent from the client side 
+ # try & except: the socket binds if the ip or port does not match with (client and server) then the system gets exited.
+ # reliable: checks if the flag is used and calls on the stop_and_wait functions 
+ # message, clientadress: 
+ #
+ #Returns: a copy of a img sent from the client side 
  #
 
 def server():
