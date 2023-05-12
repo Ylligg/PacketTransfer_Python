@@ -136,7 +136,6 @@ print (f'syn_flag = {syn}, fin_flag={fin}, and ack_flag={ack}')
 
 
 
-
 def stop_and_wait_reciever(connectionserver):
 
 		message, clientaddress = connectionserver.recvfrom(1024)
@@ -149,10 +148,10 @@ def stop_and_wait_sender(connection):
 		
 		sequence_number = 1
 		acknowledgment_number = 0
+
+
+
 		packet = create_packet(sequence_number, acknowledgment_number, 2, 0, args.filetransfer.encode())
-		
-
-
 		connection.send(packet)
 
 		while True:
@@ -162,13 +161,37 @@ def stop_and_wait_sender(connection):
 				break
 			if(message != "ACK"):
 				connection.settimeout(500)
-				connection.sendto(packet, serveraddress)
+				connection.send(packet)
 				break
 			
 		sequence_number += 1
 		acknowledgment_number += 1
 
 		
+
+def GBN(connection):
+	sequence_number = 1
+	acknowledgment_number = 0
+	packet = create_packet(sequence_number, acknowledgment_number, 2, 5, args.filetransfer.encode())
+	
+
+	while True:
+			message, serveraddress = connection.recvfrom(1024)
+			print(message)
+			if message == "ACK":
+				break
+			if(message != "ACK"):
+				connection.settimeout(500)
+				connection.send(packet)
+				break
+			
+		sequence_number += 1
+		acknowledgment_number += 1
+
+	sequence_number += 1
+	acknowledgment_number += 1
+
+
 
 def GBNorSR():
 	if(args.reliable == "gbn"):
@@ -253,11 +276,3 @@ else:
 	raise argparse.ArgumentTypeError('you must run either in server or client mode')
 
 
-if args.reliable == "gbn":
-	GBNorSR()
-elif args.reliavle =="sr":
-	GBNorSR()
-elif args.reliable == "s&w":
-	stop_and_wait()
-else:
-	raise argparse.ArgumentTypeError('you must choose a reliable method')
