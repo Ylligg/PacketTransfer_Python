@@ -166,7 +166,8 @@ def stop_and_wait_sender(connection):
 		
 def GBN_recviver(serverconnection):
 	while True:
-
+		slidewindow = []
+		slidewindow.append(0)
 		message, clientaddress = serverconnection.recvfrom(1472)
 
 		tall = len(message)
@@ -176,7 +177,6 @@ def GBN_recviver(serverconnection):
 			break
 
 		h = message[:12]
-		message = message[12:]
 
 		if len(h) < 12:
 			break
@@ -193,6 +193,13 @@ def GBN_recviver(serverconnection):
 		#we specified
 		seq, ack, flags, win = parse_header (h)
 
+		
+
+		if(slidewindow.pop() != seq-1):
+			print("hei u fucked up")
+		
+		slidewindow.append(seq)
+		print(slidewindow.pop())
 		print(f'seq={seq}, ack={ack}, flags={flags}, recevier-window={win}')
 		ackPacket = create_packet(0, seq, 4, 5, b'')
 		serverconnection.sendto(ackPacket, clientaddress)
@@ -208,7 +215,7 @@ def GBN_sender(connection):
 	f = open(message, "rb")
 	while True:
 		
-		slidewindow = [] * win
+		slidewindow = []
 		
 
 		i = 0
@@ -222,25 +229,25 @@ def GBN_sender(connection):
 					connection.send("fin".encode())
 					break
 				packet = create_packet(seq, ack, flags, win, msg)
-				slidewindow[i-1] = packet
+				slidewindow.append(packet)
 				connection.send(packet)
+				
+				
+				#print(msg)
+				acknowledgment, serveraddress = connection.recvfrom(1460)
+
+				h = acknowledgment[:12]
+				acknowledgment = acknowledgment[12:]
+				seq2, ack2, flags2, win2 = parse_header (h)
+				print(ack2)
+				if seq == ack2:
+					ack = ack2
+					slidewindow = []
+				else:
+					connection.settimeout(500)
+					for i in slidewindow:
+						connection.send(slidewindow[i])
 				seq += 1
-			
-			#print(msg)
-			acknowledgment, serveraddress = connection.recvfrom(1472)
-
-			h = acknowledgment[:12]
-			acknowledgment = acknowledgment[12:]
-			seq2, ack2, flags2, win2 = parse_header (h)
-
-			if seq == ack2:
-				ack = ack2
-				slidewindow = [] * win
-			else:
-				connection.settimeout(500)
-				for i in slidewindow:
-					connection.send(slidewindow[i])
-
 			
 			i +=1
 			if acknowledgment == b"finACK":
