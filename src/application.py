@@ -194,7 +194,8 @@ def GBN_recviver(serverconnection):
 		seq, ack, flags, win = parse_header (h)
 
 		print(f'seq={seq}, ack={ack}, flags={flags}, recevier-window={win}')
-		serverconnection.sendto("ACK".encode(), clientaddress)
+		ackPacket = create_packet(0, seq, 4, 5, b'')
+		serverconnection.sendto(ackPacket, clientaddress)
 		return message
 	
 
@@ -220,34 +221,46 @@ def GBN_sender(connection):
 
 			packet = create_packet(seq, ack, flags, win, msg)
 			connection.send(packet)
-			seq += 1
-			#print(msg)
-			i +=1
-
-		acknowledgment, serveraddress = connection.recvfrom(1472)
-		print(acknowledgment) # ack message
-
-		if acknowledgment == b"finACK":
-			break
-		
-		if acknowledgment == b"ACK":
-			ack += 1
-		else:
-			connection.settimeout(500)
-
 			
+			#print(msg)
+			acknowledgment, serveraddress = connection.recvfrom(1472)
+
+			h = acknowledgment[:12]
+			acknowledgment = acknowledgment[12:]
+			seq2, ack2, flags2, win2 = parse_header (h)
+
+			if seq == ack2:
+				ack += 1
+			else:
+				connection.settimeout(500)
+				
+			seq += 1
+			i +=1
+			if acknowledgment == b"finACK":
+				break
+		
+		
 
 		
-def GBNorSR():
-	if(args.reliable == "gbn"):
+def SR(serverconnection):
 
-		print("gbn is used")
-	elif(args.reliable == "sr"):
+	while True:
 
-		print("sr is used")
-	elif(args.reliable == "sw"):
-		print("sw is used")
+		message, clientaddress = serverconnection.recvfrom(1472)
+		h = message[:12]
+		seq, ack, flags, win = parse_header (h)
 
+	array = []
+	array.len(win)
+
+	for i in array:
+		array[i] = i+1
+
+	print (array)
+
+
+
+	
 	
 def client():
 
@@ -279,6 +292,7 @@ def client():
 			client_socket.send(msg)
 
 		client_socket.send("fin".encode())
+	client_socket.close()
 
 
 
@@ -324,7 +338,6 @@ def server():
 				break  
 			f.write(msg)
 		serverSocket.close()
-
 
 	else:
 				
