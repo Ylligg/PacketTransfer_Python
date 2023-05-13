@@ -224,7 +224,7 @@ def GBN_sender(connection):
 				packet = create_packet(seq, ack, flags, win, msg)
 				slidewindow[i] = packet
 				connection.send(packet)
-				
+				seq += 1
 			
 			#print(msg)
 			acknowledgment, serveraddress = connection.recvfrom(1472)
@@ -235,12 +235,13 @@ def GBN_sender(connection):
 
 			if seq == ack2:
 				ack = ack2
+				slidewindow = [] * win
 			else:
 				connection.settimeout(500)
 				for i in slidewindow:
 					connection.send(slidewindow[i])
 
-			seq += 1
+			
 			i +=1
 			if acknowledgment == b"finACK":
 				break
