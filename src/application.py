@@ -222,7 +222,7 @@ def GBN_sender(connection):
 					connection.send("fin".encode())
 					break
 				packet = create_packet(seq, ack, flags, win, msg)
-				slidewindow[i] = packet
+				slidewindow[i-1] = packet
 				connection.send(packet)
 				seq += 1
 			
