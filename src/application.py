@@ -165,30 +165,37 @@ def stop_and_wait_sender(connection):
 
 		
 def GBN_recviver(serverconnection):
-	
 	while True:
 
-		message, clientaddress = serverconnection.recvfrom(1460)
+		message, clientaddress = serverconnection.recvfrom(1472)
 
 		tall = len(message)
-		print("så mye ", tall)
-		h = message[:12]
-		print(len(h))
+		#print("så mye ", tall)
 
-		
+		if message == b'':
+			break
+
+		h = message[:12]
+		message = message[12:]
+
+		if len(h) < 12:
+			break
+
+		#print(len(h))
 		
 		if message == b'fin':
+			serverconnection.sendto("finACK".encode(), clientaddress)
 			break
+
 		
 		#now we get the header from the parse_header function
 		#which unpacks the values based on the header_format that 
 		#we specified
 		seq, ack, flags, win = parse_header (h)
 
-		
 		print(f'seq={seq}, ack={ack}, flags={flags}, recevier-window={win}')
 		serverconnection.sendto("ACK".encode(), clientaddress)
-
+		return message
 	
 
 
@@ -200,29 +207,37 @@ def GBN_sender(connection):
 	f = open(message, "rb")
 	while True:
 		
-		msg = f.read(1460)
-		packet = create_packet(seq, ack, flags, win, msg)
+		
 
-		connection.send(packet)
-		seq += 1
-		#print(msg)
-		if msg == b'':
-			connection.send("fin".encode())
-			break
+		i = 0
+		while i != win: 
 
-		acknowledgment, serveraddress = connection.recvfrom(1460)
+			msg = f.read(1460)
+
+			if msg == b'':
+				connection.send("fin".encode())
+				break
+
+			packet = create_packet(seq, ack, flags, win, msg)
+			connection.send(packet)
+			seq += 1
+			#print(msg)
+			i +=1
+
+		acknowledgment, serveraddress = connection.recvfrom(1472)
 		print(acknowledgment) # ack message
+
+		if acknowledgment == b"finACK":
+			break
 		
 		if acknowledgment == b"ACK":
 			ack += 1
 		else:
 			connection.settimeout(500)
+
 			
 
 		
-
-
-
 def GBNorSR():
 	if(args.reliable == "gbn"):
 
@@ -280,28 +295,39 @@ def client():
  #
 
 def server():
-		serverSocket = socket(AF_INET, SOCK_DGRAM) 
-		serverPort = args.port
-		server_ip = args.serverip
+	serverSocket = socket(AF_INET, SOCK_DGRAM) 
+	serverPort = args.port
+	server_ip = args.serverip
 
-		try:
-			serverSocket.bind((server_ip,serverPort))
-		except:
-			print("Binding did not work")
-			sys.exit()
-	
-		print('A Simpleperf server is listening on port', serverPort, "\n")
+	try:
+		serverSocket.bind((server_ip,serverPort))
+	except:
+		print("Binding did not work")
+		sys.exit()
 
-	
+	print('A Simpleperf server is listening on port', serverPort, "\n")
 
-		message, clientaddress = serverSocket.recvfrom(1460)
-		message = message[:17].decode() # the name of the file (apollo_creed.jpg)
+	message, clientaddress = serverSocket.recvfrom(1460)
+	message = message[:17].decode() # the name of the file (apollo_creed.jpg)
 
-		if args.reliable == "sw":
-			stop_and_wait_reciever(serverSocket)
-		elif args.reliable == "gbn":
-			GBN_recviver(serverSocket)
-					
+	if args.reliable == "sw":
+		stop_and_wait_reciever(serverSocket)
+	elif args.reliable == "gbn":
+		f = open("Copy-"+ message, "wb")
+
+		while True:
+			msg = GBN_recviver(serverSocket)
+			if msg == b'fin':
+				break
+			#print(msg)
+			if not msg:
+				break  
+			f.write(msg)
+		serverSocket.close()
+
+
+	else:
+				
 		if message != "":
 			serverSocket.sendto("ACK".encode(),	clientaddress)
 
@@ -314,8 +340,7 @@ def server():
 			#print(msg)
 			f.write(msg)
 		serverSocket.close()
-	
-	
+		
 		
 # Description: 
  # this checks if either the client or server flag is used, when used a call is made to their respected functions
