@@ -208,19 +208,23 @@ def GBN_sender(connection):
 	f = open(message, "rb")
 	while True:
 		
-		
+		slidewindow = []
+		slidewindow.len(win)
 
 		i = 0
 		while i != win: 
 
-			msg = f.read(1460)
+			
 
-			if msg == b'':
-				connection.send("fin".encode())
-				break
-
-			packet = create_packet(seq, ack, flags, win, msg)
-			connection.send(packet)
+			for i in range (win):
+				msg = f.read(1460)
+				if msg == b'':
+					connection.send("fin".encode())
+					break
+				packet = create_packet(seq, ack, flags, win, msg)
+				slidewindow[i] = packet
+				connection.send(packet)
+				
 			
 			#print(msg)
 			acknowledgment, serveraddress = connection.recvfrom(1472)
@@ -230,10 +234,12 @@ def GBN_sender(connection):
 			seq2, ack2, flags2, win2 = parse_header (h)
 
 			if seq == ack2:
-				ack += 1
+				ack = ack2
 			else:
 				connection.settimeout(500)
-				
+				for i in slidewindow:
+					connection.send(slidewindow[i])
+
 			seq += 1
 			i +=1
 			if acknowledgment == b"finACK":
