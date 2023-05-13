@@ -208,8 +208,8 @@ def GBN_sender(connection):
 	f = open(message, "rb")
 	while True:
 		
-		slidewindow = []
-		slidewindow.len(win)
+		slidewindow = [] * win
+		
 
 		i = 0
 		while i != win: 
