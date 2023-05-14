@@ -218,18 +218,21 @@ def GBN_recviver(serverconnection):
 			break
 
 		#print(len(h))
-		
-		if message == b'fin':
-			serverconnection.sendto("finACK".encode(), clientaddress)
-			break
 
+		
+		
+		
 		
 		#now we get the header from the parse_header function
 		#which unpacks the values based on the header_format that 
 		#we specified
 		seq, ack, flags, win = parse_header (h)
+		syn1, ack1, fin1 = parse_flags(flags)
+		if fin1 > 0:
+			finAck_packet = create_packet(0, 0, 6, 0, b'')
+			serverconnection.sendto(finAck_packet, clientaddress)
+			break
 
-		
 
 		if(slidewindow.pop() != seq-1):
 			print("hei u fucked up")
@@ -260,7 +263,8 @@ def GBN_sender(connection):
 			for i in range (win):
 				msg = f.read(1460)
 				if msg == b'':
-					connection.send("fin".encode())
+					fin_packet = create_packet(0, 0, 2, 0, b'')
+					connection.send(fin_packet)
 					break
 				packet = create_packet(seq, ack, flags, win, msg)
 				slidewindow.append(packet)
