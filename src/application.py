@@ -133,7 +133,8 @@ print (f'syn_flag = {syn}, fin_flag={fin}, and ack_flag={ack}')
 
  # Description: 
  # this is the reciever side of the stop and wait which does this: it recieves a packet from the stop_and_wait_sender 
- # and if it is delivered to the reciever then an ACK messae is sent
+ # and if it is delivered to the reciever then an ACK messae is sent back to the client.
+ # when all the packets is sent, the image is done copying and a finish packet is sent 
  # Arguments: 
  # ip: holds the ip address of the server
  # port: port number of the server
@@ -187,7 +188,6 @@ def stop_and_wait_sender(connection):
 			h = acknowledgment[:12]	
 			acknowledgment = acknowledgment[12:]
 			seq2, ack2, flags2, win2 = parse_header (h)
-
 			print("ACK:", ack) # prints out the amount of ack
 
 			if seq == ack2:
@@ -195,9 +195,17 @@ def stop_and_wait_sender(connection):
 				seq += 1
 			
 			elif(seq != ack2):
+				print("No ACK recived, resending packet")
 				connection.settimeout(500)
 				connection.send(packet)
-			
+
+		finish, serveraddress = connection.recvfrom(1460)
+		h = finish[:12]	
+		seq2, ack2, flags2, win2 = parse_header (h)
+		syn, ack, fin = parse_flags(flags2)
+
+		if fin > 0 and ack > 0:
+			print("The process is finished")  
 		
 def GBN_recviver(serverconnection):
 	while True:
@@ -218,21 +226,18 @@ def GBN_recviver(serverconnection):
 			break
 
 		#print(len(h))
+		
+		if message == b'fin':
+			serverconnection.sendto("finACK".encode(), clientaddress)
+			break
 
-		
-		
-		
 		
 		#now we get the header from the parse_header function
 		#which unpacks the values based on the header_format that 
 		#we specified
 		seq, ack, flags, win = parse_header (h)
-		syn1, ack1, fin1 = parse_flags(flags)
-		if fin1 > 0:
-			finAck_packet = create_packet(0, 0, 6, 0, b'')
-			serverconnection.sendto(finAck_packet, clientaddress)
-			break
 
+		
 
 		if(slidewindow.pop() != seq-1):
 			print("hei u fucked up")
@@ -244,8 +249,6 @@ def GBN_recviver(serverconnection):
 		serverconnection.sendto(ackPacket, clientaddress)
 		return message
 	
-
-
 def GBN_sender(connection):
 
 	seq, ack, flags, win = 1,0,0,5
@@ -263,13 +266,11 @@ def GBN_sender(connection):
 			for i in range (win):
 				msg = f.read(1460)
 				if msg == b'':
-					fin_packet = create_packet(0, 0, 2, 0, b'')
-					connection.send(fin_packet)
+					connection.send("fin".encode())
 					break
 				packet = create_packet(seq, ack, flags, win, msg)
 				slidewindow.append(packet)
 				connection.send(packet)
-				
 				
 				#print(msg)
 				acknowledgment, serveraddress = connection.recvfrom(1460)
@@ -292,8 +293,6 @@ def GBN_sender(connection):
 				break
 		
 		
-
-		
 def SR(serverconnection):
 
 	while True:
@@ -311,9 +310,6 @@ def SR(serverconnection):
 	print (array)
 
 
-
-	
-	
 def client():
 
 	client_socket = socket(AF_INET, SOCK_DGRAM)
@@ -345,8 +341,6 @@ def client():
 
 		client_socket.send("fin".encode())
 	client_socket.close()
-
-
 
 # Description: 
  # the server function creates a socket in UDP which is unreliable. 
