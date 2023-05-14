@@ -211,10 +211,11 @@ def stop_and_wait_sender(connection):
 
 
 
-def GBN_recviver(serverconnection):	
+def GBN_recviver(serverconnection, te):
+		
 	slidewindowData = []
 	slidewindowSeq = []
-	teller1 = 0
+	
 
 	while True:
 
@@ -248,12 +249,17 @@ def GBN_recviver(serverconnection):
 				slidewindowSeq.pop(0)
 				slidewindowData.pop(0)
 		
-		if teller1 == 1:
+		############## SHIT DOES NOT WANNA WORK (TELLER/PACKET LOSS)##################
+	
+		if(te == 2):
 			print("skip")
 		else:
+			
 			# ack packet that gets sent to the client
 			ackPacket = create_packet(0, seq, 4, 5, b'')
 			serverconnection.sendto(ackPacket, clientaddress)
+			
+		
 
 		if message == b'fin':
 			serverconnection.sendto("finACK".encode(), clientaddress)
@@ -295,20 +301,18 @@ def GBN_sender(connection):
 			i +=1
 			seq += 1
 		
-		
+		print(slidewindowSeq)
 		acknowledgment, serveraddress = connection.recvfrom(1460)
-
 		h = acknowledgment[:12]
 		acknowledgment = acknowledgment[12:]
 		seq2, ack2, flags2, win2 = parse_header (h)
 		if slidewindowSeq[0] == ack2:
-			print("det funker")
 			slidewindowSeq.pop(0)
 			slidewindowData.pop(0)
 			ack = ack2
 			feil = 0
 			
-			
+		
 		else:
 			print("det skjedde en feil")
 			connection.settimeout(500)
@@ -323,7 +327,6 @@ def GBN_sender(connection):
 		if feil == 1:
 			print("her skjedde det feil aaaaah")
 		else:
-			print("funker")
 			msg = f.read(1460)
 			if msg == b'':
 
@@ -334,7 +337,6 @@ def GBN_sender(connection):
 			slidewindowData.append(packet)
 			slidewindowSeq.append(seq)
 			connection.send(packet)
-			print(slidewindowSeq)
 			seq += 1
 
 	
@@ -342,7 +344,7 @@ def GBN_sender(connection):
 		if acknowledgment == b"finACK":
 			break	
 	
-		print(slidewindowSeq)
+	
 
 
 def SR(serverconnection):
@@ -439,7 +441,7 @@ def server():
 		f = open("Copy-"+ message, "wb")
 
 		while True:
-			msg = GBN_recviver(serverSocket)
+			msg = GBN_recviver(serverSocket, 1)
 			if msg == b'fin':
 				break
 			#print(msg)
