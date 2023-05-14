@@ -131,14 +131,27 @@ print(f'seq={seq}, ack={ack}, flags={flags}, receiver-window={win}')
 syn, ack, fin = parse_flags(flags)
 print (f'syn_flag = {syn}, fin_flag={fin}, and ack_flag={ack}')
 
-
-
+ # Description: 
+ # this is the reciever side of the stop and wait which does this: it recieves a packet from the stop_and_wait_sender 
+ # and if it is delivered to the reciever then an ACK messae is sent
+ # Arguments: 
+ # ip: holds the ip address of the server
+ # port: port number of the server
+ # Use of other input and output parameters in the function
+ # checks dotted decimal notation and port ranges 
+ # Returns: .... and why?
+ #
 def stop_and_wait_reciever(connectionserver):
 
-		message, clientaddress = connectionserver.recvfrom(1024)
-		acknowledgment = "ACK"
+		message, clientaddress = connectionserver.recvfrom(1472)
+
+		h = message[:12] # we extract the header information of the packet
+		seq, ack, flags, win = parse_header (h) # gets the info for the header 
+		print(f'seq={seq}, ack={ack}, flags={flags}, recevier-window={win}') # prints out the packet
+		ackPacket = create_packet(0, seq, 4, 5, b'') # creates an acknowledgement packet to be sent back to the client
+
 		if message != "":
-			connectionserver.sendto(acknowledgment.encode(), clientaddress)
+			connectionserver.sendto(ackPacket, clientaddress)
 	
 		
 def stop_and_wait_sender(connection):
@@ -150,17 +163,22 @@ def stop_and_wait_sender(connection):
 		connection.send(packet)
 
 		while True:
-			message, serveraddress = connection.recvfrom(1024)
-			print(message)
-			if message == "ACK":
+
+			acknowledgment, serveraddress = connection.recvfrom(1472)
+			# print(message) 
+			h = acknowledgment[:12]	
+			acknowledgment = acknowledgment[12:]
+			seq2, ack2, flags2, win2 = parse_header (h)
+			print("ACK:", ack2)
+			if seq == ack2:
+				acknowledgment_number = ack2
 				break
-			if(message != "ACK"):
+			
+			if(seq != ack):
 				connection.settimeout(500)
 				connection.send(packet)
 				break
 			
-		sequence_number += 1
-		acknowledgment_number += 1
 
 
 		
@@ -216,9 +234,8 @@ def GBN_sender(connection):
 	while True:
 		
 		slidewindow = []
-		
-
 		i = 0
+
 		while i != win: 
 
 			
