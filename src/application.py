@@ -152,7 +152,8 @@ def stop_and_wait_reciever(connectionserver):
 		message = message[12:]
 
 		if message == b'fin':
-			connectionserver.sendto("finACK".encode(), clientaddress)
+			finAck_packet = create_packet(0, 0, 6, 1, b'')
+			connectionserver.sendto(finAck_packet, clientaddress)
 			break
 
 		print(f'seq={seq}, ack={ack}, flags={flags}, recevier-window={win}') # prints out the packet
@@ -174,7 +175,8 @@ def stop_and_wait_sender(connection):
 
 			msg = f.read(1460)
 			if msg == b'':
-				connection.send("fin".encode())
+				fin_packet = create_packet(0, 0, 2, 1, b'')
+				connection.send(fin_packet)
 				break
 
 			packet = create_packet(seq, ack, flags, win, msg)
@@ -189,9 +191,10 @@ def stop_and_wait_sender(connection):
 			print("ACK:", ack) # prints out the amount of ack
 
 			if seq == ack2:
-				ack = ack
+				ack = ack2
+				seq += 1
 			
-			if(seq != ack2):
+			elif(seq != ack2):
 				connection.settimeout(500)
 				connection.send(packet)
 			
