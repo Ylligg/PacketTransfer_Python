@@ -142,6 +142,7 @@ print (f'syn_flag = {syn}, fin_flag={fin}, and ack_flag={ack}')
  # checks dotted decimal notation and port ranges 
  # Returns: .... and why?
  #
+
 def stop_and_wait_reciever(connectionserver):
 
 	while True:
@@ -206,11 +207,15 @@ def stop_and_wait_sender(connection):
 
 		if fin > 0 and ack > 0:
 			print("The process is finished")  
+
+
+
 		
 def GBN_recviver(serverconnection):
+
+	slidewindow = []
 	while True:
-		slidewindow = []
-		slidewindow.append(0)
+		
 		message, clientaddress = serverconnection.recvfrom(1472)
 
 		tall = len(message)
@@ -230,19 +235,13 @@ def GBN_recviver(serverconnection):
 		if message == b'fin':
 			serverconnection.sendto("finACK".encode(), clientaddress)
 			break
-
 		
-		#now we get the header from the parse_header function
-		#which unpacks the values based on the header_format that 
-		#we specified
+	
 		seq, ack, flags, win = parse_header (h)
 
-		
-
-		if(slidewindow.pop() != seq-1):
-			print("hei u fucked up")
-		
 		slidewindow.append(seq)
+		
+		
 		print(slidewindow.pop())
 		print(f'seq={seq}, ack={ack}, flags={flags}, recevier-window={win}')
 		ackPacket = create_packet(0, seq, 4, 5, b'')
@@ -257,41 +256,46 @@ def GBN_sender(connection):
 	f = open(message, "rb")
 	while True:
 		
-		slidewindow = []
+		slidewindowData = []
+		slidewindowSeq = []
 		i = 0
 
 		while i != win: 
 
-		
-			for i in range (win):
-				msg = f.read(1460)
-				if msg == b'':
-					connection.send("fin".encode())
-					break
-				packet = create_packet(seq, ack, flags, win, msg)
-				slidewindow.append(packet)
-				connection.send(packet)
-				
-				#print(msg)
-				acknowledgment, serveraddress = connection.recvfrom(1460)
 
-				h = acknowledgment[:12]
-				acknowledgment = acknowledgment[12:]
-				seq2, ack2, flags2, win2 = parse_header (h)
-				print(ack2)
-				if seq == ack2:
-					ack = ack2
-					slidewindow = []
-				else:
-					connection.settimeout(500)
-					for i in slidewindow:
-						connection.send(slidewindow[i])
-				seq += 1
-			
-			i +=1
-			if acknowledgment == b"finACK":
+			msg = f.read(1460)
+			if msg == b'':
+				connection.send("fin".encode())
 				break
-		
+			packet = create_packet(seq, ack, flags, win, msg)
+			slidewindowData.append(packet)
+			slidewindowSeq.append(seq)
+			connection.send(packet)
+			seq += 1
+				
+		#print(msg)
+		acknowledgment, serveraddress = connection.recvfrom(1460)
+
+		h = acknowledgment[:12]
+		acknowledgment = acknowledgment[12:]
+		seq2, ack2, flags2, win2 = parse_header (h)
+		print(ack2)
+
+		if seq == ack2:
+			ack = ack2
+			slidewindowSeq.pop(0)
+			slidewindowSeq.append(seq2)
+		else:
+			connection.settimeout(500)
+			for i in range(len(slidewindowData)):
+				connection.send(slidewindowData[i])
+			
+	
+		i +=1
+		if acknowledgment == b"finACK":
+			break	
+
+		print(slidewindowSeq)
 		
 def SR(serverconnection):
 
