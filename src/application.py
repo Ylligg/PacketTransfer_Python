@@ -143,44 +143,58 @@ print (f'syn_flag = {syn}, fin_flag={fin}, and ack_flag={ack}')
  #
 def stop_and_wait_reciever(connectionserver):
 
+	while True:
+
 		message, clientaddress = connectionserver.recvfrom(1472)
 
 		h = message[:12] # we extract the header information of the packet
 		seq, ack, flags, win = parse_header (h) # gets the info for the header 
+		message = message[12:]
+
+		if message == b'fin':
+			connectionserver.sendto("finACK".encode(), clientaddress)
+			break
+
 		print(f'seq={seq}, ack={ack}, flags={flags}, recevier-window={win}') # prints out the packet
 		ackPacket = create_packet(0, seq, 4, 5, b'') # creates an acknowledgement packet to be sent back to the client
 
 		if message != "":
 			connectionserver.sendto(ackPacket, clientaddress)
-	
+		return message
 		
+
 def stop_and_wait_sender(connection):
 		
-		sequence_number = 1
-		acknowledgment_number = 0
+		seq, ack, flags, win = 1,0,0,0
 
-		packet = create_packet(sequence_number, acknowledgment_number, 2, 0, args.filetransfer.encode())
-		connection.send(packet)
+		message = args.filetransfer
+		f = open(message, "rb")
 
 		while True:
 
-			acknowledgment, serveraddress = connection.recvfrom(1472)
-			# print(message) 
+			msg = f.read(1460)
+			if msg == b'':
+				connection.send("fin".encode())
+				break
+
+			packet = create_packet(seq, ack, flags, win, msg)
+			connection.send(packet)
+
+
+			acknowledgment, serveraddress = connection.recvfrom(1460)
 			h = acknowledgment[:12]	
 			acknowledgment = acknowledgment[12:]
 			seq2, ack2, flags2, win2 = parse_header (h)
-			print("ACK:", ack2)
+
+			print("ACK:", ack) # prints out the amount of ack
+
 			if seq == ack2:
-				acknowledgment_number = ack2
-				break
+				ack = ack
 			
-			if(seq != ack):
+			if(seq != ack2):
 				connection.settimeout(500)
 				connection.send(packet)
-				break
 			
-
-
 		
 def GBN_recviver(serverconnection):
 	while True:
@@ -195,6 +209,7 @@ def GBN_recviver(serverconnection):
 			break
 
 		h = message[:12]
+		message = message[12:]
 
 		if len(h) < 12:
 			break
@@ -238,8 +253,7 @@ def GBN_sender(connection):
 
 		while i != win: 
 
-			
-
+		
 			for i in range (win):
 				msg = f.read(1460)
 				if msg == b'':
@@ -356,7 +370,18 @@ def server():
 	message = message[:17].decode() # the name of the file (apollo_creed.jpg)
 
 	if args.reliable == "sw":
-		stop_and_wait_reciever(serverSocket)
+		f = open("Copy-"+ message, "wb")
+
+		while True:
+			msg = stop_and_wait_reciever(serverSocket)
+			if msg == b'fin':
+				break
+			#print(msg)
+			if not msg:
+				break  
+			f.write(msg)
+		serverSocket.close()
+
 	elif args.reliable == "gbn":
 		f = open("Copy-"+ message, "wb")
 
