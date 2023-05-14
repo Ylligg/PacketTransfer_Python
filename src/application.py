@@ -254,14 +254,14 @@ def GBN_sender(connection):
 
 	message = args.filetransfer
 	f = open(message, "rb")
+	slidewindowData = []
+	slidewindowSeq = []
+	i = 0
 	while True:
+	
 		
-		slidewindowData = []
-		slidewindowSeq = []
-		i = 0
 
 		while i != win: 
-
 
 			msg = f.read(1460)
 			if msg == b'':
@@ -271,32 +271,60 @@ def GBN_sender(connection):
 			slidewindowData.append(packet)
 			slidewindowSeq.append(seq)
 			connection.send(packet)
-			seq += 1
+
 				
+			#print(msg)
+			acknowledgment, serveraddress = connection.recvfrom(1460)
+
+			h = acknowledgment[:12]
+			acknowledgment = acknowledgment[12:]
+			seq2, ack2, flags2, win2 = parse_header (h)
+
+			if seq == ack2:
+				ack = ack2
+			else:
+				connection.settimeout(500)
+				for i in range(len(slidewindowData)):
+					connection.send(slidewindowData[i])
+				
+
+			i +=1
+			if acknowledgment == b"finACK":
+				break	
+			seq += 1
+			print(slidewindowSeq)
+
+		msg = f.read(1460)
+		if msg == b'':
+			connection.send("fin".encode())
+			break
+		packet = create_packet(seq, ack, flags, win, msg)
+		slidewindowData.append(packet)
+		slidewindowSeq.append(seq)
+		connection.send(packet)
+
+
 		#print(msg)
 		acknowledgment, serveraddress = connection.recvfrom(1460)
 
 		h = acknowledgment[:12]
 		acknowledgment = acknowledgment[12:]
 		seq2, ack2, flags2, win2 = parse_header (h)
-		print(ack2)
 
 		if seq == ack2:
-			ack = ack2
 			slidewindowSeq.pop(0)
-			slidewindowSeq.append(seq2)
+			ack = ack2
 		else:
 			connection.settimeout(500)
 			for i in range(len(slidewindowData)):
 				connection.send(slidewindowData[i])
 			
-	
-		i +=1
 		if acknowledgment == b"finACK":
 			break	
-
+		seq += 1
 		print(slidewindowSeq)
-		
+
+
 def SR(serverconnection):
 
 	while True:
