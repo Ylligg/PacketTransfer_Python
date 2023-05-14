@@ -210,17 +210,17 @@ def stop_and_wait_sender(connection):
 
 
 
-		
+
 def GBN_recviver(serverconnection):
+	teller = 0		
+	slidewindowData = []
+	slidewindowSeq = []
+	
 
-	slidewindow = []
 	while True:
-		
+
 		message, clientaddress = serverconnection.recvfrom(1472)
-
-		tall = len(message)
-		#print("så mye ", tall)
-
+	
 		if message == b'':
 			break
 
@@ -230,37 +230,62 @@ def GBN_recviver(serverconnection):
 		if len(h) < 12:
 			break
 
-		#print(len(h))
+		seq, ack, flags, win = parse_header (h)
+
+		slidewindowData.append(message)
+		slidewindowSeq.append(seq)
+
+		if len(slidewindowSeq) == win:
+			for i in range(win-1):
+				
+				if(slidewindowSeq[i]+1 == slidewindowSeq[i+1]):
+					continue
+				else:
+					slidewindowSeq = []
+					slidewindowData = []
+
+			if (len(slidewindowSeq) == win):
+				print(slidewindowSeq)
+				slidewindowSeq.pop(0)
+				slidewindowData.pop(0)
 		
+
+		teller += 1
+		if(teller == 2):
+			continue
+		else:
+			# ack packet that gets sent to the client
+			ackPacket = create_packet(0, seq, 4, 5, b'')
+			serverconnection.sendto(ackPacket, clientaddress)
+		
+
 		if message == b'fin':
 			serverconnection.sendto("finACK".encode(), clientaddress)
 			break
 		
-	
-		seq, ack, flags, win = parse_header (h)
-
-		slidewindow.append(seq)
-		
-		
-		print(slidewindow.pop())
 		print(f'seq={seq}, ack={ack}, flags={flags}, recevier-window={win}')
-		ackPacket = create_packet(0, seq, 4, 5, b'')
-		serverconnection.sendto(ackPacket, clientaddress)
-		return message
-	
+		
+		
+		for i in range(len(slidewindowData)):
+			return slidewindowData[0]
+		
+
+
 def GBN_sender(connection):
 
 	seq, ack, flags, win = 1,0,0,5
 
 	message = args.filetransfer
 	f = open(message, "rb")
+
 	slidewindowData = []
 	slidewindowSeq = []
 	i = 0
-	while True:
-	
-		
+	feil = 0
 
+
+	while True:
+		
 		while i != win: 
 
 			msg = f.read(1460)
@@ -270,58 +295,57 @@ def GBN_sender(connection):
 			packet = create_packet(seq, ack, flags, win, msg)
 			slidewindowData.append(packet)
 			slidewindowSeq.append(seq)
-			connection.send(packet)
-
-				
-			#print(msg)
-			acknowledgment, serveraddress = connection.recvfrom(1460)
-
-			h = acknowledgment[:12]
-			acknowledgment = acknowledgment[12:]
-			seq2, ack2, flags2, win2 = parse_header (h)
-
-			if seq == ack2:
-				ack = ack2
-			else:
-				connection.settimeout(500)
-				for i in range(len(slidewindowData)):
-					connection.send(slidewindowData[i])
-				
-
+			connection.send(packet)	
 			i +=1
-			if acknowledgment == b"finACK":
-				break	
 			seq += 1
-			print(slidewindowSeq)
-
-		msg = f.read(1460)
-		if msg == b'':
-			connection.send("fin".encode())
-			break
-		packet = create_packet(seq, ack, flags, win, msg)
-		slidewindowData.append(packet)
-		slidewindowSeq.append(seq)
-		connection.send(packet)
-
-
-		#print(msg)
+		
+		
 		acknowledgment, serveraddress = connection.recvfrom(1460)
 
 		h = acknowledgment[:12]
 		acknowledgment = acknowledgment[12:]
 		seq2, ack2, flags2, win2 = parse_header (h)
-
-		if seq == ack2:
+		if slidewindowSeq[0] == ack2:
+			print("det funker")
 			slidewindowSeq.pop(0)
+			slidewindowData.pop(0)
 			ack = ack2
+			feil = 0
+			
+			
 		else:
+			print("det skjedde en feil")
 			connection.settimeout(500)
+			print(acknowledgment)
 			for i in range(len(slidewindowData)):
 				connection.send(slidewindowData[i])
 			
+			ack = ack2
+			feil = 1
+
+
+		if feil == 1:
+			print("her skjedde det feil aaaaah")
+		else:
+			print("funker")
+			msg = f.read(1460)
+			if msg == b'':
+
+				connection.send("fin".encode())
+				break
+
+			packet = create_packet(seq, ack, flags, win, msg)
+			slidewindowData.append(packet)
+			slidewindowSeq.append(seq)
+			connection.send(packet)
+			print(slidewindowSeq)
+			seq += 1
+
+	
+			
 		if acknowledgment == b"finACK":
 			break	
-		seq += 1
+	
 		print(slidewindowSeq)
 
 
