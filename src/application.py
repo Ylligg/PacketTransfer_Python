@@ -150,8 +150,8 @@ def stop_and_wait_reciever(connectionserver):
 		h = message[:12] # we extract the header information of the packet
 		seq, ack, flags, win = parse_header (h) # gets the info for the header 
 		message = message[12:]
-		print(parse_flags(flags))
-		if parse_flags(flags) == b'':
+		syn1, ack1, fin1 = parse_flags(flags)
+		if fin1 > 0:
 			finAck_packet = create_packet(0, 0, 6, 1, b'')
 			connectionserver.sendto(finAck_packet, clientaddress)
 			break
