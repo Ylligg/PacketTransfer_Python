@@ -211,11 +211,10 @@ def stop_and_wait_sender(connection):
 
 
 
-def GBN_recviver(serverconnection):
-	teller = 0		
+def GBN_recviver(serverconnection):	
 	slidewindowData = []
 	slidewindowSeq = []
-	
+	teller1 = 0
 
 	while True:
 
@@ -249,15 +248,12 @@ def GBN_recviver(serverconnection):
 				slidewindowSeq.pop(0)
 				slidewindowData.pop(0)
 		
-
-		teller += 1
-		if(teller == 2):
-			continue
+		if teller1 == 1:
+			print("skip")
 		else:
 			# ack packet that gets sent to the client
 			ackPacket = create_packet(0, seq, 4, 5, b'')
 			serverconnection.sendto(ackPacket, clientaddress)
-		
 
 		if message == b'fin':
 			serverconnection.sendto("finACK".encode(), clientaddress)
