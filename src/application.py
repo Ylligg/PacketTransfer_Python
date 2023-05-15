@@ -221,8 +221,6 @@ def GBN_recviver(serverconnection, teller, sjekk):
 
 	h = message[:12]
 
-
-
 	seq, ack, flags, win = parse_header (h)
 	
 	slidewindowData.append(message)
@@ -332,24 +330,117 @@ def GBN_sender(connection, feil):
 			break	
 	
 		
+def SR_Recviever(serverconnection, teller, sjekk):
+
+	slidewindowData = []
+	slidewindowSeq = []
 
 
-def SR(serverconnection):
+	message, clientaddress = serverconnection.recvfrom(1472)
 
+	h = message[:12]
+
+
+
+	seq, ack, flags, win = parse_header (h)
+	
+	slidewindowData.append(message)
+	slidewindowSeq.append(seq)
+
+	if len(slidewindowSeq) == win:
+
+		for i in range(win-1):
+			
+			if(slidewindowSeq[i]+1 == slidewindowSeq[i+1]):
+				print("")
+			else:
+				slidewindowSeq = []
+				slidewindowData = []
+
+		if (len(slidewindowSeq) == win):
+			print(slidewindowSeq)
+			slidewindowSeq.pop(0)
+			slidewindowData.pop(0)
+	
+	
+	if(teller == 3):
+		print("Skips")
+
+	else:
+		ackPacket = create_packet(0, seq, 4, 5, b'')
+		serverconnection.sendto(ackPacket, clientaddress)
+
+	if message == b'fin':
+		serverconnection.sendto("finACK".encode(), clientaddress)
+	
+	print(f'seq={seq}, ack={ack}, flags={flags}, recevier-window={win}')
+	
+	
+	return slidewindowData[0]
+
+
+def SR_Sender(connection, feil):
+
+	seq, ack, flags, win = 1,0,0,5
+
+	message = args.filetransfer
+	f = open(message, "rb")
+
+	slidewindowData = []
+	slidewindowSeq = []
+	i = 0
+
+	while i != win: 
+
+			msg = f.read(1460)
+			if msg == b'':
+				connection.send("fin".encode())
+				break
+			packet = create_packet(seq, ack, flags, win, msg)
+			slidewindowData.append(packet)
+			slidewindowSeq.append(seq)
+			connection.send(slidewindowData[i])	
+			i += 1
+			seq += 1
+		
 	while True:
 
-		message, clientaddress = serverconnection.recvfrom(1472)
-		h = message[:12]
-		seq, ack, flags, win = parse_header (h)
+		print(slidewindowSeq)
 
-	array = []
-	array.len(win)
+		acknowledgment, serveraddress = connection.recvfrom(1460)
+		h = acknowledgment[:12]
+		acknowledgment = acknowledgment[12:]
+		seq2, ack2, flags2, win2 = parse_header (h)
 
-	for i in array:
-		array[i] = i+1
+		if (feil == win-1):
+			feil = 0
+		
+		elif slidewindowSeq[0] == ack2:
+			slidewindowSeq.pop(0)
+			slidewindowData.pop(0)
+			ack = ack2
 
-	print (array)
+			msg = f.read(1460)
+			if msg == b'':
+				connection.send("fin".encode())
+				break
 
+			packet = create_packet(seq, ack, flags, win, msg)
+			slidewindowData.append(packet)
+			slidewindowSeq.append(seq)
+			connection.send(packet)
+			seq += 1
+
+		else:
+			feil += 1
+			print("det skjedde en feil")
+			connection.settimeout(500)
+			print(acknowledgment)
+			connection.send(slidewindowData[0])
+
+		if acknowledgment == b"finACK":
+			break	
+		
 
 def client():
 
@@ -370,6 +461,9 @@ def client():
 	elif args.reliable == "gbn":
 		feil = 0
 		GBN_sender(client_socket, feil)
+	elif args.reliable == "sr":
+		feil = 0
+		SR_Sender(client_socket, feil)
 	else:
 
 		f = open(message, "rb")
@@ -440,8 +534,6 @@ def server():
 
 			seq, ack, flags, win = parse_header(h)
 
-
-
 			if msg == b'fin':
 				break
 			#print(msg)
@@ -454,6 +546,45 @@ def server():
 				sjekk += 1
 
 		serverSocket.close()
+	elif  args.reliable == "sr":
+		f = open("Copy-"+ message, "wb")
+		teller = 0
+		sjekk = 1
+		arraymsg = []
+		arrayseq = []
+		while True:
+			msg = SR_Recviever(serverSocket, teller, sjekk)
+			teller += 1
+
+			h = msg [:12]
+			msg = msg[12:]
+
+			seq, ack, flags, win = parse_header(h)
+
+			if msg == b'fin':
+				break
+			#print(msg)
+			if not msg:
+				break
+			arrayseq.append(seq)
+			arraymsg.append(msg)
+
+			if(seq == arrayseq[seq-1]):
+				f.write(arraymsg[seq-1])
+				sjekk += 1
+			else:
+				for i in range(len(arrayseq)-1):
+					if(arrayseq[i] < arrayseq[i+1]):
+						continue
+					else:
+
+						temp = arrayseq[i] 
+						arrayseq[i] = arrayseq[i+1] 
+						arrayseq[i+1] = temp 
+
+						temp2 = arraymsg[i] 
+						arraymsg[i] = arraymsg[i+1] 
+						arraymsg[i+1] = temp2 
 
 	else:
 				
