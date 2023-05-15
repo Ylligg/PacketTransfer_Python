@@ -395,9 +395,11 @@ def SR_Sender(connection, feil):
 		h = acknowledgment[:12]
 		acknowledgment = acknowledgment[12:]
 		seq2, ack2, flags2, win2 = parse_header (h)
-		
 
-		if slidewindowSeq[0] == ack2:
+		if (feil == win-1):
+			feil = 0
+		
+		elif slidewindowSeq[0] == ack2:
 			slidewindowSeq.pop(0)
 			slidewindowData.pop(0)
 			ack = ack2
@@ -413,18 +415,12 @@ def SR_Sender(connection, feil):
 			connection.send(packet)
 			seq += 1
 
-		elif(feil > 0):
-			print("")
-			if feil == 4:
-				feil = 0
-				continue
-
 		else:
+			feil += 1
 			print("det skjedde en feil")
 			connection.settimeout(0.5)
 			print(acknowledgment)
 			connection.send(slidewindowData[0])
-			feil +=1
 
 		if acknowledgment == b"finACK":
 			break	
@@ -574,8 +570,7 @@ def server():
 
 						temp2 = arraymsg[i] 
 						arraymsg[i] = arraymsg[i+1] 
-						arraymsg[i+1] = temp2
-			
+						arraymsg[i+1] = temp2 
 
 	else:
 				
