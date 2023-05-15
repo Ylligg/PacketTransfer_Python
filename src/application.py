@@ -1,7 +1,8 @@
 from socket import *
 import sys
 import argparse 
-import ipaddress 
+import ipaddress
+import time
 
 parser = argparse.ArgumentParser(description="positional arguments", epilog="end of help")
 
@@ -14,10 +15,6 @@ parser.add_argument('-r', '--reliable', type=str)
 parser.add_argument('-t', '--testcase', type=str)
 parser.add_argument('-f', '--filetransfer', type=str)
 
-parser.add_argument('-S', '--SYN', type=str)
-parser.add_argument('-A', '--ACK', type=int)
-parser.add_argument('-F', '--FIN', type=int)
-parser.add_argument('-R', '--Reset', type=str)
 
 args = parser.parse_args()
 
@@ -34,9 +31,6 @@ from struct import *
 # see the struct official page for more info
 
 header_format = '!IIHH'
-
-#print the header size: total = 12
-print (f'size of the header = {calcsize(header_format)}')
 
 
 def create_packet(seq, ack, flags, win, data):
@@ -71,79 +65,23 @@ def parse_flags(flags):
     fin = flags & (1 << 1)
     return syn, ack, fin
 
-#now let's create a packet with sequence number 1
-
-
-data = b'0' * 1460
-print (f'app data for size ={len(data)}')
-
-sequence_number = 1
-acknowledgment_number = 0
-window = 0 # window value should always be sent from the receiver-side
-flags = 0 # we are not going to set any flags when we send a data packet
-
-#msg now holds a packet, including our custom header and data
-msg = create_packet(sequence_number, acknowledgment_number, flags, window, data)
-
-#now let's look at the header
-#we already know that the header is in the first 12 bytes
-
-header_from_msg = msg[:12]
-print(len(header_from_msg))
-
-#now we get the header from the parse_header function
-#which unpacks the values based on the header_format that 
-#we specified
-seq, ack, flags, win = parse_header (header_from_msg)
-print(f'seq={seq}, ack={ack}, flags={flags}, recevier-window={win}')
-
-#let's extract the data_from_msg that holds
-#the application data of 1460 bytes
-data_from_msg = msg[12:]
-print (len(data_from_msg))
-
-
-#let's mimic an acknowledgment packet from the receiver-end
-#now let's create a packet with acknowledgement number 1
-#an acknowledgment packet from the receiver should have no data
-#only the header with acknowledgment number, ack_flag=1, win=6400
-data = b'' 
-print('\n\nCreating an acknowledgment packet:')
-print (f'this is an empty packet with no data ={len(data)}')
-
-sequence_number = 0
-acknowledgment_number = 1   #an ack for the last sequnce
-window = 0 # window value should always be sent from the receiver-side
-
-# let's look at the last 4 bits:  S A F R
-# 0 0 0 0 represents no flags
-# 0 1 0 0  ack flag set, and the decimal equivalent is 4
-flags = 4 
-
-msg = create_packet(sequence_number, acknowledgment_number, flags, window, data)
-print (f'this is an acknowledgment packet of header size={len(msg)}')
-
-#let's parse the header
-seq, ack, flags, win = parse_header (msg) #it's an ack message with only the header
-print(f'seq={seq}, ack={ack}, flags={flags}, receiver-window={win}')
-
-#now let's parse the flag field
-syn, ack, fin = parse_flags(flags)
-print (f'syn_flag = {syn}, fin_flag={fin}, and ack_flag={ack}')
 
  # Description: 
  # this is the reciever side of the stop and wait which does this: it recieves a packet from the stop_and_wait_sender 
  # and if it is delivered to the reciever then an ACK messae is sent back to the client.
- # when all the packets is sent, the image is done copying and a finish packet is sent 
- # Arguments: 
+ # when all the packets is sent, the image is done copying and a finish packet is sent, if an acknowledge is not sent then the client will send the packet again.  
+ # it recives the packet from the client side and splits it into the header (12 bytes) and message(1460 bytes)
+ # when everything is recived a fin packet is sent back to the client
+ # for every packet 
+ #
+ #Arguments: 
  # ip: holds the ip address of the server
  # port: port number of the server
- # Use of other input and output parameters in the function
- # checks dotted decimal notation and port ranges 
+ # 
  # Returns: .... and why?
  #
 
-def stop_and_wait_reciever(connectionserver):
+def stop_and_wait_reciever(connectionserver, teller):
 
 	while True:
 
@@ -153,6 +91,7 @@ def stop_and_wait_reciever(connectionserver):
 		seq, ack, flags, win = parse_header (h) # gets the info for the header 
 		message = message[12:]
 		syn1, ack1, fin1 = parse_flags(flags)
+
 		if fin1 > 0:
 			finAck_packet = create_packet(0, 0, 6, 1, b'')
 			connectionserver.sendto(finAck_packet, clientaddress)
@@ -160,53 +99,79 @@ def stop_and_wait_reciever(connectionserver):
 
 		print(f'seq={seq}, ack={ack}, flags={flags}, recevier-window={win}') # prints out the packet
 		ackPacket = create_packet(0, seq, 4, 5, b'') # creates an acknowledgement packet to be sent back to the client
-
+		
+		#if(teller == 3):
+			#print("Skips")
+		#else:
 		if message != "":
 			connectionserver.sendto(ackPacket, clientaddress)
+
 		return message
 		
 
 def stop_and_wait_sender(connection):
+
+		connection.settimeout(0.5)
 		
 		seq, ack, flags, win = 1,0,0,0
-
+		throughput = 0
 		message = args.filetransfer
 		f = open(message, "rb")
 
 		while True:
 
 			msg = f.read(1460)
+
+			throughput += len(msg)
+
+			start = time.time()
+
 			if msg == b'':
 				fin_packet = create_packet(0, 0, 2, 1, b'')
 				connection.send(fin_packet)
 				break
 
 			packet = create_packet(seq, ack, flags, win, msg)
-			connection.send(packet)
 
+			##### test case 3 (Skip seq) #####
 
-			acknowledgment, serveraddress = connection.recvfrom(1460)
+			if(seq == 1):
+				print("skip")
+			else:
+				connection.send(packet)
+				seq += 1
+			acknowledgment = b''
+
+			while True:
+				try:
+					acknowledgment, serveraddress = connection.recvfrom(1460)
+					break
+				except:
+					print("No ACK recived, resending packet")
+					connection.send(packet)
+
 			h = acknowledgment[:12]	
 			acknowledgment = acknowledgment[12:]
 			seq2, ack2, flags2, win2 = parse_header (h)
-			print("ACK:", ack) # prints out the amount of ack
-
+			print("ACK:", ack2) # prints out the amount of ack
+			
 			if seq == ack2:
 				ack = ack2
 				seq += 1
 			
-			elif(seq != ack2):
-				print("No ACK recived, resending packet")
-				connection.settimeout(500)
-				connection.send(packet)
-
 		finish, serveraddress = connection.recvfrom(1460)
 		h = finish[:12]	
 		seq2, ack2, flags2, win2 = parse_header (h)
 		syn, ack, fin = parse_flags(flags2)
 
 		if fin > 0 and ack > 0:
-			print("The process is finished")  
+			print("The process is finished") 
+		end = time.time()
+
+		throughput = 8*throughput/(end-start)
+		throughput = throughput/1_000_000
+
+		print("throughput", throughput, "mbps")
 
 
 
@@ -241,10 +206,10 @@ def GBN_recviver(serverconnection, teller, sjekk):
 			slidewindowSeq.pop(0)
 			slidewindowData.pop(0)
 	
-	
+	###### test case 2 (skip ack) #######
+
 	if(teller == 3):
 		print("Skips")
-
 	else:
 		ackPacket = create_packet(0, seq, 4, 5, b'')
 		serverconnection.sendto(ackPacket, clientaddress)
@@ -270,7 +235,9 @@ def GBN_sender(connection, feil):
 	slidewindowSeq = []
 	i = 0
 
-
+	throughput = 0
+	start = time.time()
+	test = True
 
 	while i != win: 
 
@@ -288,6 +255,7 @@ def GBN_sender(connection, feil):
 	while True:
 
 		print(slidewindowSeq)
+		
 
 		acknowledgment, serveraddress = connection.recvfrom(1460)
 		h = acknowledgment[:12]
@@ -308,26 +276,42 @@ def GBN_sender(connection, feil):
 			ack = ack2
 
 			msg = f.read(1460)
+			throughput += len(msg)
 			if msg == b'':
 				connection.send("fin".encode())
 				break
 
 			packet = create_packet(seq, ack, flags, win, msg)
+			
 			slidewindowData.append(packet)
 			slidewindowSeq.append(seq)
+
+
+			##### test case 3 (skip seq)######
+			#if (seq == 8 and test):
+				#test = False
+				#print("skip")
+			#else:
 			connection.send(packet)
 			seq += 1
 
 		else:
 			feil += 1
 			print("det skjedde en feil")
-			connection.settimeout(500)
+			connection.settimeout(0.5)
 			print(acknowledgment)
 			for i in range(len(slidewindowData)):
 				connection.send(slidewindowData[i])
 
 		if acknowledgment == b"finACK":
 			break	
+
+	end = time.time()
+	throughput = 8*throughput/(end-start)
+	throughput = throughput/1_000_000
+
+	print("throughput", throughput, "mbps")
+
 	
 		
 def SR_Recviever(serverconnection, teller, sjekk):
@@ -434,14 +418,13 @@ def SR_Sender(connection, feil):
 		else:
 			feil += 1
 			print("det skjedde en feil")
-			connection.settimeout(500)
+			connection.settimeout(0.5)
 			print(acknowledgment)
 			connection.send(slidewindowData[0])
 
 		if acknowledgment == b"finACK":
 			break	
 		
-
 def client():
 
 	client_socket = socket(AF_INET, SOCK_DGRAM)
@@ -454,6 +437,8 @@ def client():
 
 	message = args.filetransfer # get method with variable of the html file that is going to be displayed
 	client_socket.send(message.encode())
+
+
 
 	if args.reliable == "sw":
 		stop_and_wait_sender(client_socket)
@@ -508,9 +493,10 @@ def server():
 
 	if args.reliable == "sw":
 		f = open("Copy-"+ message, "wb")
-
+		teller = 0
 		while True:
-			msg = stop_and_wait_reciever(serverSocket)
+			msg = stop_and_wait_reciever(serverSocket, teller)
+			teller += 1
 			if msg == b'fin':
 				break
 			#print(msg)
