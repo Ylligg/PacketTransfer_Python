@@ -110,7 +110,17 @@ def stop_and_wait_reciever(connectionserver, teller):
 			connectionserver.sendto(ackPacket, clientaddress)
 
 		return message
-		
+
+
+# Description: 
+# this function reads the bytes of the image that gets sent. it opens the image and reads the image in chunks of 1460 bytes
+# if the image has been read then a fin packet gets sent
+# when the file gets read it gets sent in an packet to the server 
+# when sent the sender will recive a ack message and if doesnt get it then the packet will be sent again
+# we print out ack to see if we recvive the correct amount of acknowledgements
+# we have also a way of checking out if the process is done. if done then a finish flag recived and a message is printed out
+# we also have a way of calculating the throughput with start time and end time to find the mbps when doing the test cases
+#
 
 def stop_and_wait_sender(connection):
 
@@ -175,8 +185,6 @@ def stop_and_wait_sender(connection):
 		throughput = throughput/1_000_000
 
 		print("throughput", throughput, "mbps")
-
-
 
 
 def GBN_recviver(serverconnection, teller, sjekk):
@@ -316,7 +324,6 @@ def GBN_sender(connection, feil):
 	print("throughput", throughput, "mbps")
 
 	
-		
 def SR_Recviever(serverconnection, teller, sjekk):
 
 	slidewindowData = []

@@ -13,7 +13,7 @@ when you run client remember to specify what file you want to transfer.
 reliable methods
 ----------------
 
-to use reliable methods use agrument -r and then you can choose between stop and wait with (sw) or Go Back N with (gbn)
+to use reliable methods use agrument -r and then you can choose between stop and wait with (sw) or Go Back N with (gbn), sr was not implemented correctly so using the sr flag (selective repeat).
 make sure you run the same on both server and client.
 
 example:
