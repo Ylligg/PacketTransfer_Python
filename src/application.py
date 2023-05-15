@@ -72,13 +72,14 @@ def parse_flags(flags):
  # when all the packets is sent, the image is done copying and a finish packet is sent, if an acknowledge is not sent then the client will send the packet again.  
  # it recives the packet from the client side and splits it into the header (12 bytes) and message(1460 bytes)
  # when everything is recived a fin packet is sent back to the client
- # for every packet 
- #
+ # every packet gets printed out and an ack packet gets made to the client, if it recives a packet then the ack gets sent
  #Arguments: 
- # ip: holds the ip address of the server
- # port: port number of the server
+ # message is the packet
+ # h is the header 
+ # message becomes just the bytes of the image  
+ # if finish flag is used (fin1) then it sends a fin packet to the client
  # 
- # Returns: .... and why?
+ # Returns: the function returns a chunk of the image to the server function so it can write down the chunks into the copied image
  #
 
 def stop_and_wait_reciever(connectionserver, teller):
@@ -100,6 +101,8 @@ def stop_and_wait_reciever(connectionserver, teller):
 		print(f'seq={seq}, ack={ack}, flags={flags}, recevier-window={win}') # prints out the packet
 		ackPacket = create_packet(0, seq, 4, 5, b'') # creates an acknowledgement packet to be sent back to the client
 		
+		###### test case 2 (ack skip)  ######
+
 		#if(teller == 3):
 			#print("Skips")
 		#else:
@@ -424,7 +427,11 @@ def SR_Sender(connection, feil):
 
 		if acknowledgment == b"finACK":
 			break	
-		
+
+#Description:
+# the client function connects to the server with bind. then we check if there is a reliable method used and run the appropriate function.
+#If no reliable method is used the client will send the message in chuncks of 1460 bits and send a finish message when it is done. 
+
 def client():
 
 	client_socket = socket(AF_INET, SOCK_DGRAM)
@@ -465,12 +472,11 @@ def client():
 
 # Description: 
  # the server function creates a socket in UDP which is unreliable. 
- # a connection is made by using the port and ip when connected with the client it is now able to transfer a file.
+ # a connection is made by using the port and ip when connected with the client it is now able to transfer a file. 
  # Arguments:
  # ip & port: they use flags to be able to connect via the socket
  # try & except: the socket binds if the ip or port does not match with (client and server) then the system gets exited.
- # reliable: checks if the flag is used and calls on the stop_and_wait functions 
- # message, clientadress: 
+ # reliable: checks if the argument is used and calls on the reliable methods, inside the if sentences we make a empty file with the correct name. and then recieve the data in a while true and we check if the message is empty or is finished, then we write the message into the file. while checking that the sequence is correct.
  #
  #Returns: a copy of a img sent from the client side 
  #
